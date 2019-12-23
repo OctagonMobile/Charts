@@ -42,6 +42,9 @@ public protocol ChartViewDelegate
     
     // Callbacks when the chart is moved / translated via drag gesture.
     @objc optional func chartTranslated(_ chartView: ChartViewBase, dX: CGFloat, dY: CGFloat)
+    
+    // Callbacks when the chart is long pressed.
+    @objc optional func chartValueLongPressed(_ chartView: ChartViewBase, entry: ChartDataEntry)
 
     // Callbacks when Animator stops animating
     @objc optional func chartView(_ chartView: ChartViewBase, animatorDidStop animator: Animator)
@@ -155,6 +158,12 @@ open class ChartViewBase: NSUIView, ChartDataProvider, AnimatorDelegate
         extraBottomOffset = bottom
     }
     
+    /// Custom
+    @objc internal var _scrollableLegendRenderer: ScrollableLegendRenderer!
+    @objc internal var _scrollableLegend: ScrollableLegend!
+    private var legendWidthConstraint: NSLayoutConstraint!
+    internal var scrollableLegendEnabled: Bool = false
+
     // MARK: - Initializers
     
     public override init(frame: CGRect)
@@ -193,9 +202,52 @@ open class ChartViewBase: NSUIView, ChartDataProvider, AnimatorDelegate
         
         _xAxis = XAxis()
         
+        initializeScrollableLegend()
+        
         self.addObserver(self, forKeyPath: "bounds", options: .new, context: nil)
         self.addObserver(self, forKeyPath: "frame", options: .new, context: nil)
     }
+    
+    // MARK: - Scrollable Legends
+    /// Scrollable legend intialization.
+    private func initializeScrollableLegend() {
+        _scrollableLegend = ScrollableLegend([])
+        
+        _scrollableLegend.widthChnageAction = {[weak self] (sender, widthPercentage, direction) in
+            guard let strongSelf = self else { return }
+            
+            strongSelf.scrollableLegendEnabled = strongSelf._scrollableLegend.isEnabled
+            
+            let calculatedWidth = strongSelf.frame.size.width * strongSelf.scrollableLegend.widthPercentage
+            self?.legendWidthConstraint.constant = calculatedWidth
+            
+            // update the right offset to shift the chart right
+            let shiftByValue = strongSelf._scrollableLegend.isEnabled ? calculatedWidth : 0.0
+            if direction == .left {
+                self?.extraRightOffset = shiftByValue
+            } else {
+                self?.extraLeftOffset = shiftByValue
+            }
+        }
+        _scrollableLegendRenderer = ScrollableLegendRenderer(frame: frame, legend: _scrollableLegend)
+        
+        setupScrollableLegendConstraint()
+    }
+    
+    /// Setup Scrollable legend constraint.
+    private func setupScrollableLegendConstraint() {
+        _scrollableLegendRenderer.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(_scrollableLegendRenderer)
+        
+        let legendTopConstraint = NSLayoutConstraint(item: _scrollableLegendRenderer as Any, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1.0, constant: 0)
+        let legendBottomConstraint = NSLayoutConstraint(item: _scrollableLegendRenderer as Any, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1.0, constant: 0)
+        let legendTrailingConstraint = NSLayoutConstraint(item: _scrollableLegendRenderer as Any, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1.0, constant: -10)
+        legendWidthConstraint = NSLayoutConstraint(item: _scrollableLegendRenderer as Any, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1.0, constant: (frame.width * scrollableLegend.widthPercentage))
+        addConstraints([legendTopConstraint, legendBottomConstraint, legendTrailingConstraint])
+        _scrollableLegendRenderer.addConstraint(legendWidthConstraint)
+        NSLayoutConstraint.activate([legendTopConstraint, legendBottomConstraint, legendTrailingConstraint, legendWidthConstraint])
+    }
+
     
     // MARK: - ChartViewBase
     
@@ -812,6 +864,18 @@ open class ChartViewBase: NSUIView, ChartDataProvider, AnimatorDelegate
         return _legendRenderer
     }
     
+    /// - returns: The Legend object of the chart. This method can be used to get an instance of the legend in order to customize the automatically generated Legend.
+    @objc open var scrollableLegend: ScrollableLegend!
+    {
+        return _scrollableLegend
+    }
+    
+    /// - returns: The renderer object responsible for rendering / drawing the Legend.
+    @objc open var scrollableLegendRenderer: ScrollableLegendRenderer!
+    {
+        return _scrollableLegendRenderer
+    }
+
     /// The rectangle that defines the borders of the chart-value surface (into which the actual values are drawn).
     @objc open var contentRect: CGRect
     {

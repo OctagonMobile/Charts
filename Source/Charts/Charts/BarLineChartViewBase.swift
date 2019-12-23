@@ -89,8 +89,10 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
     /// **default**: An instance of XAxisRenderer
     @objc open lazy var xAxisRenderer = XAxisRenderer(viewPortHandler: _viewPortHandler, xAxis: _xAxis, transformer: _leftAxisTransformer)
     
-    internal var _tapGestureRecognizer: NSUITapGestureRecognizer!
-    internal var _doubleTapGestureRecognizer: NSUITapGestureRecognizer!
+    @objc internal var _tapGestureRecognizer: NSUITapGestureRecognizer!
+    @objc internal var _longPressGestureRecognizer: NSUILongPressGestureRecognizer!
+    @objc internal var _doubleTapGestureRecognizer: NSUITapGestureRecognizer!
+
     #if !os(tvOS)
     internal var _pinchGestureRecognizer: NSUIPinchGestureRecognizer!
     #endif
@@ -124,6 +126,7 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
         self.highlighter = ChartHighlighter(chart: self)
         
         _tapGestureRecognizer = NSUITapGestureRecognizer(target: self, action: #selector(tapGestureRecognized(_:)))
+        _longPressGestureRecognizer = NSUILongPressGestureRecognizer(target: self, action: #selector(longPressGestureRecognized(_:)))
         _doubleTapGestureRecognizer = NSUITapGestureRecognizer(target: self, action: #selector(doubleTapGestureRecognized(_:)))
         _doubleTapGestureRecognizer.nsuiNumberOfTapsRequired = 2
         _panGestureRecognizer = NSUIPanGestureRecognizer(target: self, action: #selector(panGestureRecognized(_:)))
@@ -131,6 +134,7 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
         _panGestureRecognizer.delegate = self
         
         self.addGestureRecognizer(_tapGestureRecognizer)
+        self.addGestureRecognizer(_longPressGestureRecognizer)
         self.addGestureRecognizer(_doubleTapGestureRecognizer)
         self.addGestureRecognizer(_panGestureRecognizer)
         
@@ -555,6 +559,25 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
         }
     }
     
+    @objc fileprivate func longPressGestureRecognized(_ recognizer: NSUILongPressGestureRecognizer)
+    {
+        if _data === nil
+        {
+            return
+        }
+        
+        if recognizer.state == NSUIGestureRecognizerState.began
+        {
+            if !self.isHighLightPerTapEnabled { return }
+            
+            let location = recognizer.location(in: self)
+            
+            if let high = self.getHighlightByTouchPoint(location), let entry = _data?.entryForHighlight(high) {
+                delegate?.chartValueLongPressed?(self, entry: entry)
+            }
+        }
+    }
+
     @objc private func doubleTapGestureRecognized(_ recognizer: NSUITapGestureRecognizer)
     {
         if _data === nil

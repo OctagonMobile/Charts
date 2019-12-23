@@ -36,7 +36,10 @@ open class PieRadarChartViewBase: ChartViewBase
     /// iOS && OSX only: Enabled multi-touch rotation using two fingers.
     private var _rotationWithTwoFingers = false
     
-    private var _tapGestureRecognizer: NSUITapGestureRecognizer!
+    fileprivate var _tapGestureRecognizer: NSUITapGestureRecognizer!
+    
+    fileprivate var _longPressGestureRecognizer: NSUILongPressGestureRecognizer!
+
     #if !os(tvOS)
     private var _rotationGestureRecognizer: NSUIRotationGestureRecognizer!
     #endif
@@ -63,6 +66,10 @@ open class PieRadarChartViewBase: ChartViewBase
         _tapGestureRecognizer = NSUITapGestureRecognizer(target: self, action: #selector(tapGestureRecognized(_:)))
         
         self.addGestureRecognizer(_tapGestureRecognizer)
+
+        _longPressGestureRecognizer = NSUILongPressGestureRecognizer(target: self, action: #selector(longPressGestureRecognized(_:)))
+        
+        self.addGestureRecognizer(_longPressGestureRecognizer)
 
         #if !os(tvOS)
         _rotationGestureRecognizer = NSUIRotationGestureRecognizer(target: self, action: #selector(rotationGestureRecognized(_:)))
@@ -354,10 +361,13 @@ open class PieRadarChartViewBase: ChartViewBase
     @objc open var diameter: CGFloat
     {
         var content = _viewPortHandler.contentRect
-        content.origin.x += extraLeftOffset
-        content.origin.y += extraTopOffset
-        content.size.width -= extraLeftOffset + extraRightOffset
-        content.size.height -= extraTopOffset + extraBottomOffset
+        if !scrollableLegendEnabled {
+            // update the contentrect with offset provided.(Only in case of default legends)
+            content.origin.x += extraLeftOffset
+            content.origin.y += extraTopOffset
+            content.size.width -= extraLeftOffset + extraRightOffset
+            content.size.height -= extraTopOffset + extraBottomOffset
+        }
         return min(content.width, content.height)
     }
 
@@ -797,6 +807,20 @@ open class PieRadarChartViewBase: ChartViewBase
             
             let high = self.getHighlightByTouchPoint(location)
             self.highlightValue(high, callDelegate: true)
+        }
+    }
+    
+    @objc fileprivate func longPressGestureRecognized(_ recognizer: NSUILongPressGestureRecognizer)
+    {
+        if recognizer.state == NSUIGestureRecognizerState.began
+        {
+            if !self.isHighLightPerTapEnabled { return }
+            
+            let location = recognizer.location(in: self)
+            
+            if let high = self.getHighlightByTouchPoint(location), let entry = _data?.entryForHighlight(high) {
+                delegate?.chartValueLongPressed?(self, entry: entry)
+            }
         }
     }
     

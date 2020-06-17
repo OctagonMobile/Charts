@@ -177,7 +177,9 @@ open class BarChartView: BarLineChartViewBase, BarChartDataProvider
     // MARK: - BarChartDataProvider
     
     open var barData: BarChartData? { return _data as? BarChartData }
-    
+   
+    open var previousBarData: BarChartData? { return previousData as? BarChartData}
+
     /// `true` if drawing values above bars is enabled, `false` ifnot
     open var isDrawValueAboveBarEnabled: Bool { return drawValueAboveBarEnabled }
     

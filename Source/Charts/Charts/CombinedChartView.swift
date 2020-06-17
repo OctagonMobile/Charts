@@ -130,6 +130,14 @@ open class CombinedChartView: BarLineChartViewBase, CombinedChartDataProvider
         }
     }
     
+    open var previousBarData: BarChartData?
+    {
+        get
+        {
+            return previousData as? BarChartData
+        }
+    }
+    
     // MARK: - ScatterChartDataProvider
     
     open var scatterData: ScatterChartData?

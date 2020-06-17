@@ -68,6 +68,8 @@ open class ChartViewBase: NSUIView, ChartDataProvider, AnimatorDelegate
     /// object that holds all data that was originally set for the chart, before it was modified or any filtering algorithms had been applied
     internal var _data: ChartData?
     
+    open var previousData: ChartData? = nil
+    
     /// Flag that indicates if highlighting per tap (touch) is enabled
     private var _highlightPerTapEnabled = true
     
@@ -282,6 +284,20 @@ open class ChartViewBase: NSUIView, ChartDataProvider, AnimatorDelegate
             
             // let the chart know there is new data
             notifyDataSetChanged()
+        }
+    }
+    
+    /// To animate from previous Value of Horizontal bar Chart, set this
+    open var updatedData: ChartData?
+    {
+        get
+        {
+            return _data
+        }
+        set
+        {
+            previousData = _data
+            data = newValue
         }
     }
     

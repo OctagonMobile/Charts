@@ -312,7 +312,12 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                     fatalError("Datasets for BarChartRenderer must conform to IBarChartDataset")
                 }
                 
-                drawDataSet(context: context, dataSet: set as! IBarChartDataSet, index: i)
+                var previous: IChartDataSet?
+                if let previousSet = dataProvider.previousBarData?.getDataSetByIndex(i) {
+                    previous = previousSet
+                }
+                drawDataSet(context: context, dataSet: set as! IBarChartDataSet, previousSet: previous as? IBarChartDataSet ,index: i)
+                
             }
         }
 
@@ -323,7 +328,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
 
     private var _barShadowRectBuffer: CGRect = CGRect()
 
-    @objc open func drawDataSet(context: CGContext, dataSet: IBarChartDataSet, index: Int)
+    @objc open func drawDataSet(context: CGContext, dataSet: IBarChartDataSet, previousSet: IBarChartDataSet? = nil, index: Int)
     {
         guard let dataProvider = dataProvider else { return }
 

@@ -68,7 +68,7 @@ open class HorizontalBarChartRenderer: BarChartRenderer
         }
     }
     
-    private func prepareBuffer(dataSet: IBarChartDataSet, index: Int)
+    private func prepareBuffer(dataSet: IBarChartDataSet, previousSet: IBarChartDataSet? = nil, index: Int)
     {
         guard let
             dataProvider = dataProvider,
@@ -86,6 +86,8 @@ open class HorizontalBarChartRenderer: BarChartRenderer
         var barRect = CGRect()
         var x: Double
         var y: Double
+        var py: Double = 0
+
         
         for i in stride(from: 0, to: min(Int(ceil(Double(dataSet.entryCount) * animator.phaseX)), dataSet.entryCount), by: 1)
         {
@@ -96,13 +98,18 @@ open class HorizontalBarChartRenderer: BarChartRenderer
             x = e.x
             y = e.y
             
+            if let previous = previousSet,
+                let pe = previous.entryForIndex(i) as? BarChartDataEntry {
+                py = pe.y
+            }
+            
             if !containsStacks || vals == nil
             {
                 let bottom = CGFloat(x - barWidthHalf)
                 let top = CGFloat(x + barWidthHalf)
                 var right = isInverted
                     ? (y <= 0.0 ? CGFloat(y) : 0)
-                    : (y >= 0.0 ? CGFloat(y) : 0)
+                    : (y >= 0.0 ? CGFloat(y - py) : 0)
                 var left = isInverted
                     ? (y >= 0.0 ? CGFloat(y) : 0)
                     : (y <= 0.0 ? CGFloat(y) : 0)
@@ -118,7 +125,7 @@ open class HorizontalBarChartRenderer: BarChartRenderer
                 }
                 
                 barRect.origin.x = left
-                barRect.size.width = right - left
+                barRect.size.width = CGFloat(py) + (right - left)
                 barRect.origin.y = top
                 barRect.size.height = bottom - top
                 
@@ -182,13 +189,13 @@ open class HorizontalBarChartRenderer: BarChartRenderer
     
     private var _barShadowRectBuffer: CGRect = CGRect()
     
-    open override func drawDataSet(context: CGContext, dataSet: IBarChartDataSet, index: Int)
+    open override func drawDataSet(context: CGContext, dataSet: IBarChartDataSet, previousSet: IBarChartDataSet? = nil,index: Int)
     {
         guard let dataProvider = dataProvider else { return }
         
         let trans = dataProvider.getTransformer(forAxis: dataSet.axisDependency)
         
-        prepareBuffer(dataSet: dataSet, index: index)
+        prepareBuffer(dataSet: dataSet, previousSet: previousSet ,index: index)
         trans.rectValuesToPixel(&_buffers[index].rects)
         
         let borderWidth = dataSet.barBorderWidth

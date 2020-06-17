@@ -107,27 +107,41 @@ open class HorizontalBarChartRenderer: BarChartRenderer
             {
                 let bottom = CGFloat(x - barWidthHalf)
                 let top = CGFloat(x + barWidthHalf)
-                var right = isInverted
-                    ? (y <= 0.0 ? CGFloat(y) : 0)
-                    : (y >= 0.0 ? CGFloat(y - py) : 0)
-                var left = isInverted
-                    ? (y >= 0.0 ? CGFloat(y) : 0)
-                    : (y <= 0.0 ? CGFloat(y) : 0)
-                
-                // multiply the height of the rect with the phase
-                if right > 0
-                {
+                if py > 0 {
+                    //Update data animation, Just for Horizontal Bar
+                    var right = (y >= 0.0 ? CGFloat(y - py) : 0)
+                    
+                    // multiply the width of the rect with the phase
                     right *= CGFloat(phaseY)
+                    
+                    barRect.origin.x = 0 //For time being
+                    barRect.size.width = CGFloat(py) + right
+                    barRect.origin.y = top
+                    barRect.size.height = bottom - top
+                } else {
+                    
+                    var right = isInverted
+                        ? (y <= 0.0 ? CGFloat(y) : 0)
+                        : (y >= 0.0 ? CGFloat(y) : 0)
+                    var left = isInverted
+                        ? (y >= 0.0 ? CGFloat(y) : 0)
+                        : (y <= 0.0 ? CGFloat(y) : 0)
+                    
+                    // multiply the height of the rect with the phase
+                    if right > 0
+                    {
+                        right *= CGFloat(phaseY)
+                    }
+                    else
+                    {
+                        left *= CGFloat(phaseY)
+                    }
+                    
+                    barRect.origin.x = left
+                    barRect.size.width = (right - left)
+                    barRect.origin.y = top
+                    barRect.size.height = bottom - top
                 }
-                else
-                {
-                    left *= CGFloat(phaseY)
-                }
-                
-                barRect.origin.x = left
-                barRect.size.width = CGFloat(py) + (right - left)
-                barRect.origin.y = top
-                barRect.size.height = bottom - top
                 
                 buffer.rects[bufferIndex] = barRect
                 bufferIndex += 1
